@@ -2,6 +2,7 @@
 #include <coro/coro.hpp>
 #include <iostream>
 #include <thread>
+
 #include <rdmapp/rdmapp.h>
 
 auto device = std::make_shared<rdmapp::device>(0, 1);
@@ -9,10 +10,10 @@ auto pd = std::make_shared<rdmapp::pd>(device.get());
 auto cq = std::make_shared<rdmapp::cq>(device.get());
 auto qp = new rdmapp::qp(pd.get(), cq.get(), cq.get(), nullptr);
 auto scheduler =
-      std::make_shared<coro::io_scheduler>(coro::io_scheduler::options{
-          .thread_strategy = coro::io_scheduler::thread_strategy_t::manual,
-          .execution_strategy = coro::io_scheduler::execution_strategy_t::
-              process_tasks_inline});
+    std::make_shared<coro::io_scheduler>(coro::io_scheduler::options{
+        .thread_strategy = coro::io_scheduler::thread_strategy_t::manual,
+        .execution_strategy =
+            coro::io_scheduler::execution_strategy_t::process_tasks_inline});
 
 std::atomic<bool> stopped;
 
