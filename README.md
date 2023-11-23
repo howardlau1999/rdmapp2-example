@@ -24,8 +24,6 @@ cmake --build build
 You are expected to see the following output:
 
 ```
-
-```
 # Client
 io_scheduler::thread_pool worker 0 starting
 io_scheduler::process event thread start
