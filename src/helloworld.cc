@@ -45,7 +45,7 @@ coro::task<void> handle_qp(rdmapp::qp *qp) {
             << " rkey=" << rw_mr->rkey() << " to client" << std::endl;
   auto [_, imm] = co_await qp->recv(rw_mr);
   assert(imm.has_value());
-  std::cout << "Written by client (imm=" << imm.value() << "): " << buffer
+  std::cout << "Written by client (imm=" << imm.value() << "): " << rw_buffer
             << std::endl;
 
   /* Atomic */
