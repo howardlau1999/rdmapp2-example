@@ -1,0 +1,6 @@
+[submodule "third_party/rdmapp"]
+	path = third_party/rdmapp
+	url = https://github.com/howardlau1999/rdmapp2
+[submodule "third_party/libcoro"]
+	path = third_party/libcoro
+	url = https://github.com/jbaldwin/libcoro
