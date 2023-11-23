@@ -25,8 +25,6 @@ You are expected to see the following output:
 
 ```
 # Client
-io_scheduler::thread_pool worker 0 starting
-io_scheduler::process event thread start
 Serialized qp data size: 14
 received header lid=10920 qpn=1328 psn=1 user_data_size=0
 Received 6 bytes from server: hello
@@ -36,12 +34,8 @@ Read 6 bytes from server: hello
 Received mr addr=0x7ff550002370 length=8 rkey=190423 from server
 Fetched and added from server: 42
 Compared and swapped from server: 43
-io_scheduler::thread_pool worker 0 stopping
-io_scheduler::process event thread stop
 
 # Server
-io_scheduler::thread_pool worker 0 starting
-io_scheduler::process event thread start
 received header lid=10920 qpn=1329 psn=1 user_data_size=0
 Serialized qp data size: 14
 Sent to client: hello
@@ -51,6 +45,4 @@ Written by client (imm=1): world
 Sent mr addr=0x7ff550002370 length=8 rkey=190423 to client
 Fetched and added by client: 43
 Compared and swapped by client: 4422
-io_scheduler::thread_pool worker 0 stopping
-io_scheduler::process event thread stop
 ```

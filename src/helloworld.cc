@@ -2,19 +2,24 @@
 #include <coro/coro.hpp>
 #include <iostream>
 #include <thread>
-
 #include <rdmapp/rdmapp.h>
 
 auto device = std::make_shared<rdmapp::device>(0, 1);
 auto pd = std::make_shared<rdmapp::pd>(device.get());
 auto cq = std::make_shared<rdmapp::cq>(device.get());
 auto qp = new rdmapp::qp(pd.get(), cq.get(), cq.get(), nullptr);
+auto scheduler =
+      std::make_shared<coro::io_scheduler>(coro::io_scheduler::options{
+          .thread_strategy = coro::io_scheduler::thread_strategy_t::manual,
+          .execution_strategy = coro::io_scheduler::execution_strategy_t::
+              process_tasks_inline});
 
 std::atomic<bool> stopped;
 
-void cq_poller() {
+void ev_poller() {
   struct ibv_wc wc;
   while (!stopped) {
+    scheduler->process_events();
     auto event = cq->poll(wc);
     if (event) {
       rdmapp::process_wc(wc);
@@ -189,46 +194,6 @@ coro::task<rdmapp::deserialized_qp> recv_qp(coro::net::tcp_client &client) {
 }
 
 auto main(int argc, char *argv[]) -> int {
-
-  auto scheduler =
-      std::make_shared<coro::io_scheduler>(coro::io_scheduler::options{
-          // The scheduler will spawn a dedicated event processing thread.  This
-          // is the default, but
-          // it is possible to use 'manual' and call 'process_events()' to drive
-          // the scheduler yourself.
-          .thread_strategy = coro::io_scheduler::thread_strategy_t::spawn,
-          // If the scheduler is in spawn mode this functor is called upon
-          // starting the dedicated
-          // event processor thread.
-          .on_io_thread_start_functor =
-              [] { std::cout << "io_scheduler::process event thread start\n"; },
-          // If the scheduler is in spawn mode this functor is called upon
-          // stopping the dedicated
-          // event process thread.
-          .on_io_thread_stop_functor =
-              [] { std::cout << "io_scheduler::process event thread stop\n"; },
-          // The io scheduler can use a coro::thread_pool to process the events
-          // or tasks it is given.
-          // You can use an execution strategy of `process_tasks_inline` to have
-          // the event loop thread
-          // directly process the tasks, this might be desirable for small tasks
-          // vs a thread pool for large tasks.
-          .pool =
-              coro::thread_pool::options{
-                  .thread_count = 1,
-                  .on_thread_start_functor =
-                      [](size_t i) {
-                        std::cout << "io_scheduler::thread_pool worker " << i
-                                  << " starting\n";
-                      },
-                  .on_thread_stop_functor =
-                      [](size_t i) {
-                        std::cout << "io_scheduler::thread_pool worker " << i
-                                  << " stopping\n";
-                      },
-              },
-          .execution_strategy = coro::io_scheduler::execution_strategy_t::
-              process_tasks_on_thread_pool});
   auto make_server_task = [&](std::string const &port) -> coro::task<void> {
     // Start by creating a tcp server, we'll do this before putting it into the
     // scheduler so it is immediately available for the client to connect since
@@ -272,6 +237,8 @@ auto main(int argc, char *argv[]) -> int {
 
     co_await handle_qp(qp);
 
+    delete qp;
+
     co_return;
   };
 
@@ -304,9 +271,11 @@ auto main(int argc, char *argv[]) -> int {
 
     co_await client_qp(qp);
 
+    delete qp;
+
     co_return;
   };
-  std::jthread poller = std::jthread(cq_poller);
+  std::jthread poller = std::jthread(ev_poller);
   if (argc == 2) {
     coro::sync_wait(make_server_task(argv[1]));
   } else if (argc == 3) {
